@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UzRead — Learn English Through News</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Fraunces:ital,wght@0,700;0,900;1,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --bg: #0d0d14;
+  --bg2: #13131f;
+  --bg3: #1a1a2e;
+  --card: #16162a;
+  --border: rgba(255,255,255,0.07);
+  --text: #f0effe;
+  --muted: #8b8aac;
+  --accent: #7c6af7;
+  --accent2: #f2709c;
+  --accent3: #43e8b0;
+  --accent4: #fbbf24;
+  --grad1: linear-gradient(135deg, #7c6af7, #f2709c);
+  --grad2: linear-gradient(135deg, #43e8b0, #7c6af7);
+  --grad3: linear-gradient(135deg, #fbbf24, #f2709c);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ANIMATED BG */
+body::before{
+  content:'';position:fixed;inset:0;
+  background: radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124,106,247,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 80% 80%, rgba(242,112,156,0.1) 0%, transparent 60%),
+              radial-gradient(ellipse 50% 40% at 50% 50%, rgba(67,232,176,0.05) 0%, transparent 70%);
+  pointer-events:none;z-index:0;
+}
+
+/* ===== AUTH ===== */
+#auth-screen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:2rem;position:relative;z-index:10;
+}
+.auth-wrap{width:100%;max-width:420px}
+.auth-logo{
+  font-family:'Fraunces',serif;font-size:3rem;font-weight:900;
+  background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;text-align:center;margin-bottom:0.25rem;
+}
+.auth-sub{text-align:center;color:var(--muted);font-size:13px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2.5rem}
+.auth-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;backdrop-filter:blur(20px)}
+.auth-tabs{display:flex;background:var(--bg2);border-radius:10px;padding:4px;margin-bottom:1.5rem}
+.auth-tab{flex:1;padding:9px;text-align:center;cursor:pointer;border-radius:8px;font-size:13px;font-weight:500;color:var(--muted);transition:all 0.2s}
+.auth-tab.active{background:var(--grad1);color:white}
+.inp-group{margin-bottom:1rem}
+.inp-group label{display:block;font-size:11px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7px;font-weight:600}
+.inp-group input{width:100%;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;outline:none;transition:border 0.2s}
+.inp-group input:focus{border-color:var(--accent)}
+.auth-err{font-size:12px;color:var(--accent2);margin-bottom:1rem;min-height:16px}
+.btn-grad{background:var(--grad1);color:white;border:none;padding:14px;border-radius:12px;width:100%;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s,transform 0.1s;letter-spacing:0.05em}
+.btn-grad:hover{opacity:0.9;transform:translateY(-1px)}
+.btn-grad:active{transform:translateY(0)}
+
+/* ===== MAIN APP ===== */
+#app{display:none;min-height:100vh;position:relative;z-index:10}
+
+/* TOPBAR */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(13,13,20,0.85);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:0.75rem 1.5rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+}
+.topbar-logo{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:900;background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.streak-pill{display:flex;align-items:center;gap:5px;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);border-radius:20px;padding:5px 12px;font-size:13px;font-weight:600;color:var(--accent4)}
+.user-pill{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.user-pill:hover{border-color:var(--accent)}
+.user-dot{width:7px;height:7px;border-radius:50%;background:var(--accent3)}
+
+/* NAV */
+.nav{display:flex;gap:4px;padding:1rem 1.5rem 0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.nav::-webkit-scrollbar{display:none}
+.nav-btn{padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.nav-btn.active{background:var(--accent);border-color:var(--accent);color:white}
+.nav-btn:hover:not(.active){border-color:var(--accent);color:var(--text)}
+
+/* CONTENT */
+.content{padding:1.5rem;max-width:860px;margin:0 auto}
+
+/* NOTIFICATION BAR */
+#notif-bar{display:none;margin-bottom:1rem;background:linear-gradient(135deg,rgba(124,106,247,0.2),rgba(242,112,156,0.2));border:1px solid rgba(124,106,247,0.3);border-radius:12px;padding:10px 16px;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px}
+
+/* ARTICLES GRID */
+.articles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:1.5rem}
+.article-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.25rem;cursor:pointer;transition:transform 0.2s,border-color 0.2s,box-shadow 0.2s;position:relative;overflow:hidden}
+.article-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.3s;background:var(--grad1)}
+.article-card:hover{transform:translateY(-3px);border-color:rgba(124,106,247,0.4);box-shadow:0 12px 40px rgba(124,106,247,0.15)}
+.card-cat{font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;padding:3px 10px;border-radius:20px;display:inline-block}
+.cat-economy{background:rgba(67,232,176,0.15);color:var(--accent3)}
+.cat-tourism{background:rgba(251,191,36,0.15);color:var(--accent4)}
+.cat-education{background:rgba(124,106,247,0.15);color:var(--accent)}
+.cat-infrastructure{background:rgba(242,112,156,0.15);color:var(--accent2)}
+.cat-environment{background:rgba(67,232,176,0.15);color:var(--accent3)}
+.cat-politics{background:rgba(242,112,156,0.15);color:var(--accent2)}
+.cat-culture{background:rgba(251,191,36,0.15);color:var(--accent4)}
+.cat-sport{background:rgba(124,106,247,0.15);color:var(--accent)}
+.card-title{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:700;line-height:1.3;margin-bottom:10px;color:var(--text)}
+.card-meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)}
+.card-words{display:flex;align-items:center;gap:4px}
+.card-dot{width:5px;height:5px;border-radius:50%;background:var(--accent3)}
+.card-done{position:absolute;top:12px;right:12px;background:var(--accent3);color:#000;border-radius:20px;font-size:10px;font-weight:700;padding:3px 8px;letter-spacing:0.05em}
+.card-locked{position:absolute;top:12px;right:12px;font-size:16px}
+
+/* ARTICLE READER */
+#reader{display:none}
+.reader-back{display:flex;align-items:center;gap:8px;color:var(--muted);cursor:pointer;font-size:13px;margin-bottom:1.5rem;width:fit-content}
+.reader-back:hover{color:var(--text)}
+.reader-head{margin-bottom:1.5rem}
+.reader-cat{font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;display:inline-block;padding:3px 12px;border-radius:20px}
+.reader-title{font-family:'Fraunces',serif;font-size:clamp(1.5rem,4vw,2.2rem);font-weight:900;line-height:1.2;margin-bottom:1rem}
+.reader-passage{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.5rem;font-size:16px;line-height:1.9;color:#d4d0f0;margin-bottom:1.5rem;
+}
+.word{cursor:pointer;border-bottom:2px dotted rgba(124,106,247,0.5);color:#b8b0ff;transition:all 0.15s;position:relative}
+.word:hover{color:var(--accent);border-bottom-color:var(--accent);background:rgba(124,106,247,0.1);border-radius:3px;padding:0 2px}
+.tooltip{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:var(--accent);color:white;padding:5px 12px;border-radius:8px;
+  font-size:12px;font-family:'Space Grotesk',sans-serif;white-space:nowrap;
+  z-index:200;pointer-events:none;opacity:0;transition:opacity 0.15s;
+  box-shadow:0 4px 20px rgba(124,106,247,0.4);
+}
+.word:hover .tooltip{opacity:1}
+.tooltip::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--accent)}
+
+/* VOCAB */
+.vocab-section{margin-bottom:1.5rem}
+.section-label{font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.vocab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:1.5rem}
+.vcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;transition:all 0.2s}
+.vcard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.vcard .en{font-weight:600;font-size:15px;color:var(--text);margin-bottom:3px}
+.vcard .uz{font-size:12px;color:var(--muted)}
+
+/* TASKS */
+.tasks-list{display:flex;flex-direction:column;gap:10px;margin-bottom:1.5rem}
+.task-item{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  transition:all 0.2s;
+}
+.task-item.done{border-color:rgba(67,232,176,0.3);background:rgba(67,232,176,0.05)}
+.task-item.done .task-title{text-decoration:line-through;color:var(--muted)}
+.task-left{display:flex;align-items:center;gap:12px}
+.task-icon{font-size:1.5rem}
+.task-title{font-size:14px;font-weight:500}
+.task-desc{font-size:12px;color:var(--muted);margin-top:2px}
+.task-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+.task-item.done .task-check{background:var(--accent3);border-color:var(--accent3);color:#000}
+
+/* QUIZ */
+#quiz-view{display:none}
+.quiz-header{margin-bottom:2rem}
+.quiz-prog-wrap{display:flex;gap:6px;margin-bottom:1rem}
+.qprog{flex:1;height:4px;border-radius:2px;background:var(--bg3);transition:background 0.3s}
+.qprog.correct{background:var(--accent3)}
+.qprog.wrong{background:var(--accent2)}
+.qprog.current{background:var(--accent)}
+.quiz-q{font-family:'Fraunces',serif;font-size:clamp(1.2rem,3vw,1.7rem);font-weight:700;line-height:1.4;margin-bottom:1.5rem}
+.quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.qopt{
+  background:var(--card);border:1.5px solid var(--border);border-radius:14px;
+  padding:14px 16px;text-align:left;font-family:'Space Grotesk',sans-serif;
+  font-size:14px;cursor:pointer;transition:all 0.2s;color:var(--text);
+}
+.qopt:hover:not(:disabled){border-color:var(--accent);background:rgba(124,106,247,0.1);transform:translateY(-1px)}
+.qopt.correct{background:rgba(67,232,176,0.15);border-color:var(--accent3);color:var(--accent3)}
+.qopt.wrong{background:rgba(242,112,156,0.15);border-color:var(--accent2);color:var(--accent2)}
+.qopt:disabled{cursor:default}
+
+/* PROFILE */
+#profile-view{display:none}
+.profile-hero{
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:2rem;margin-bottom:1.5rem;text-align:center;
+  background-image:radial-gradient(ellipse at top, rgba(124,106,247,0.15), transparent);
+}
+.profile-avatar{
+  width:72px;height:72px;border-radius:50%;background:var(--grad1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.8rem;margin:0 auto 1rem;
+}
+.profile-name{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:700;margin-bottom:4px}
+.profile-email{font-size:13px;color:var(--muted);margin-bottom:1.5rem}
+.stats-row{display:flex;justify-content:center;gap:2rem;flex-wrap:wrap}
+.stat-item{text-align:center}
+.stat-num{font-family:'Fraunces',serif;font-size:2rem;font-weight:700;background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px}
+
+.progress-section{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:1.5rem;margin-bottom:1.5rem}
+.progress-section h3{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:1rem}
+.prog-bar-wrap{margin-bottom:14px}
+.prog-bar-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.prog-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width 1s ease;background:var(--grad1)}
+.prog-fill.green{background:var(--grad2)}
+.prog-fill.gold{background:var(--grad3)}
+
+/* RESULT */
+#result-view{display:none;text-align:center;padding:2rem 0}
+.result-emoji{font-size:4rem;margin-bottom:1rem;animation:bounceIn 0.5s ease}
+@keyframes bounceIn{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.result-big{font-family:'Fraunces',serif;font-size:5rem;font-weight:900;background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.result-sub{font-size:14px;color:var(--muted);margin:0.75rem 0 2rem;line-height:1.6}
+.result-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn-outline2{background:transparent;border:1px solid var(--border);color:var(--text);padding:12px 24px;border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s}
+.btn-outline2:hover{border-color:var(--accent);color:var(--accent)}
+.btn-small{padding:12px 24px;border-radius:12px;font-size:13px;font-weight:600;width:auto}
+
+/* LOADING */
+.loader{display:flex;justify-content:center;padding:3rem}
+.loader span{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite;margin:0 4px}
+.loader span:nth-child(2){animation-delay:.2s;background:var(--accent2)}
+.loader span:nth-child(3){animation-delay:.4s;background:var(--accent3)}
+@keyframes pulse{0%,80%,100%{transform:scale(0.6);opacity:0.4}40%{transform:scale(1);opacity:1}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.fade-up{animation:fadeUp 0.4s ease forwards}
+
+@media(max-width:600px){
+  .quiz-opts{grid-template-columns:1fr}
+  .vocab-grid{grid-template-columns:1fr 1fr}
+  .topbar{padding:0.75rem 1rem}
+  .content{padding:1rem}
+  .nav{padding:0.75rem 1rem 0}
+}
+
+
+/* HOME HERO */
+.home-hero{
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:1.75rem 2rem;margin-bottom:1.25rem;
+  background-image:radial-gradient(ellipse at top left, rgba(124,106,247,0.18), transparent 60%),
+                   radial-gradient(ellipse at bottom right, rgba(242,112,156,0.12), transparent 60%);
+  overflow:hidden;position:relative;
+}
+.home-hero::after{
+  content:'';position:absolute;right:-30px;top:-30px;
+  width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle, rgba(124,106,247,0.15), transparent 70%);
+  pointer-events:none;
+}
+.hero-greeting{font-size:12px;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;font-weight:600}
+.hero-name{font-family:'Fraunces',serif;font-size:1.8rem;font-weight:900;color:var(--text);line-height:1.1;margin-bottom:6px}
+.hero-sub{font-size:12px;color:var(--muted);max-width:220px;line-height:1.5}
+.hero-streak-big{text-align:center;flex-shrink:0}
+.hero-streak-num{font-family:'Fraunces',serif;font-size:3.5rem;font-weight:900;background:var(--grad3);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.hero-streak-label{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px}
+
+/* DAILY PROGRESS CARD */
+.daily-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:1.25rem 1.5rem;margin-bottom:1.5rem;
+}
+.daily-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.daily-title{font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)}
+.daily-pct{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:700;background:var(--grad1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.daily-bar-bg{height:6px;background:var(--bg3);border-radius:3px;margin-bottom:1rem;overflow:hidden}
+.daily-bar-fill{height:100%;border-radius:3px;background:var(--grad1);transition:width 0.8s ease}
+.daily-steps{display:flex;gap:8px;flex-wrap:wrap}
+.daily-step{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:20px;padding:5px 12px;font-size:12px;font-weight:500;color:var(--muted);
+  transition:all 0.3s;
+}
+.daily-step.done{background:rgba(67,232,176,0.12);border-color:rgba(67,232,176,0.35);color:var(--accent3)}
+.dstep-icon{font-size:13px}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.section-title{font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;font-weight:700}
+.section-count{font-size:12px;color:var(--muted)}
+
+/* BAND 9 */
+.b9-filter{padding:7px 16px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.b9-filter.active{background:var(--accent);border-color:var(--accent);color:white}
+.b9-filter:hover:not(.active){border-color:var(--accent);color:var(--text)}
+.b9-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.25rem;margin-bottom:12px;transition:border-color 0.2s}
+.b9-card:hover{border-color:rgba(124,106,247,0.4)}
+.b9-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.b9-topic{font-family:'Fraunces',serif;font-size:1rem;font-weight:700;color:var(--text);line-height:1.3;flex:1}
+.b9-cat-badge{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;border-radius:20px;flex-shrink:0}
+.b9-ideas{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.b9-idea{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:#c8c4e8;line-height:1.5}
+.b9-bullet{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px}
+.b9-pro .b9-bullet{background:var(--accent3)}
+.b9-con .b9-bullet{background:var(--accent2)}
+.b9-divider{font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+.b9-example{background:rgba(124,106,247,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 12px;font-size:13px;color:#b8b0ff;font-style:italic;line-height:1.6;margin-top:10px}
+.b9-phrase{display:inline-block;background:rgba(67,232,176,0.12);color:var(--accent3);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:500;margin:3px 3px 0 0}
+.b9-phrases{margin-top:10px}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">UzRead</div>
+    <div class="auth-sub">Learn English Through Real News</div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <div class="auth-tab active" onclick="switchTab('login')">Sign In</div>
+        <div class="auth-tab" onclick="switchTab('register')">Register</div>
+      </div>
+      <div class="inp-group">
+        <label>Email</label>
+        <input type="email" id="a-email" placeholder="your@email.com">
+      </div>
+      <div class="inp-group">
+        <label>Password</label>
+        <input type="password" id="a-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()">
+      </div>
+      <div class="auth-err" id="a-err"></div>
+      <button class="btn-grad" onclick="doAuth()" id="auth-btn">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">UzRead</div>
+    <div class="topbar-right">
+      <div class="streak-pill">🔥 <span id="streak-num">0</span></div>
+      <div class="user-pill" onclick="showProfile()">
+        <div class="user-dot"></div>
+        <span id="user-name">...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nav-btn active" onclick="showSection('home')" id="nav-home">📰 Articles</button>
+    <button class="nav-btn" onclick="showSection('tasks')" id="nav-tasks">✅ Tasks</button>
+    <button class="nav-btn" onclick="showSection('band9')" id="nav-band9">🎯 Band 9</button>
+    <button class="nav-btn" onclick="showProfile()" id="nav-profile">👤 Profile</button>
+  </div>
+
+  <div class="content">
+    <div id="notif-bar"></div>
+
+    <!-- HOME -->
+    <div id="home-view">
+
+      <!-- HERO GREETING -->
+      <div class="home-hero">
+        <div class="hero-left">
+          <div class="hero-greeting" id="hero-greeting">Good morning</div>
+          <div class="hero-name" id="hero-name">Reader</div>
+          <div class="hero-sub">Keep building your English skills, one article at a time.</div>
+        </div>
+        <div class="hero-streak-big">
+          <div class="hero-streak-num" id="hero-streak-num">0</div>
+          <div class="hero-streak-label">🔥 day streak</div>
+        </div>
+      </div>
+
+      <!-- DAILY PROGRESS BAR -->
+      <div class="daily-card">
+        <div class="daily-top">
+          <div class="daily-title">Today's Progress</div>
+          <div class="daily-pct" id="daily-pct">0%</div>
+        </div>
+        <div class="daily-bar-bg"><div class="daily-bar-fill" id="daily-bar-fill" style="width:0%"></div></div>
+        <div class="daily-steps" id="daily-steps">
+          <div class="daily-step" id="dstep-read"><span class="dstep-icon">📖</span><span class="dstep-label">2 articles</span></div>
+          <div class="daily-step" id="dstep-quiz"><span class="dstep-icon">🧠</span><span class="dstep-label">1 quiz</span></div>
+          <div class="daily-step" id="dstep-score"><span class="dstep-icon">⭐</span><span class="dstep-label">Score 4+</span></div>
+          <div class="daily-step" id="dstep-words"><span class="dstep-icon">📝</span><span class="dstep-label">5 words</span></div>
+        </div>
+      </div>
+
+      <!-- ARTICLES -->
+      <div class="section-header">
+        <div class="section-title">TODAY'S READING</div>
+        <div class="section-count" id="section-count"></div>
+      </div>
+      <div id="articles-container"><div class="loader"><span></span><span></span><span></span></div></div>
+    </div>
+
+    <!-- READER -->
+    <div id="reader-view" style="display:none">
+      <div class="reader-back" onclick="backToHome()">← Back to Articles</div>
+      <div class="reader-head">
+        <div class="reader-cat" id="r-cat"></div>
+        <div class="reader-title" id="r-title"></div>
+      </div>
+      <div class="reader-passage" id="r-body"></div>
+      <a href="#" id="r-source" target="_blank" rel="noopener" style="font-size:12px;color:var(--muted);text-decoration:none;display:block;margin-bottom:1.5rem">↗ Full article</a>
+      <div class="vocab-section">
+        <div class="section-label">Key Vocabulary</div>
+        <div class="vocab-grid" id="r-vocab"></div>
+      </div>
+      <button class="btn-grad" onclick="startQuiz()" style="max-width:200px">Start Quiz →</button>
+    </div>
+
+    <!-- QUIZ -->
+    <div id="quiz-view">
+      <div class="quiz-header">
+        <div class="quiz-prog-wrap" id="q-prog"></div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem" id="q-counter">Question 1 of 5</div>
+        <div class="quiz-q" id="q-text"></div>
+      </div>
+      <div class="quiz-opts" id="q-opts"></div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result-view">
+      <div class="result-emoji" id="r-emoji">🎉</div>
+      <div class="result-big" id="r-score">5/5</div>
+      <div class="result-sub" id="r-msg"></div>
+      <div class="result-btns">
+        <button class="btn-grad btn-small" onclick="backToHome()">More Articles</button>
+        <button class="btn-outline2" onclick="reviewArticle()">Review Words</button>
+      </div>
+    </div>
+
+    <!-- TASKS -->
+    <div id="tasks-view" style="display:none">
+      <div style="font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:1rem">TODAY'S TASKS</div>
+      <div class="tasks-list" id="tasks-container"></div>
+    </div>
+
+    <!-- BAND 9 -->
+    <div id="band9-view" style="display:none">
+      <div style="font-size:11px;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:1.25rem">🎯 BAND 9 IDEAS</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.5rem" id="b9-filters">
+        <button class="b9-filter active" onclick="filterBand9('all')">All</button>
+        <button class="b9-filter" onclick="filterBand9('education')">Education</button>
+        <button class="b9-filter" onclick="filterBand9('technology')">Technology</button>
+        <button class="b9-filter" onclick="filterBand9('environment')">Environment</button>
+        <button class="b9-filter" onclick="filterBand9('society')">Society</button>
+        <button class="b9-filter" onclick="filterBand9('economy')">Economy</button>
+        <button class="b9-filter" onclick="filterBand9('health')">Health</button>
+      </div>
+      <div id="b9-container"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="profile-view" style="display:none">
+      <div class="reader-back" onclick="showSection('home')">← Back</div>
+      <div class="profile-hero">
+        <div class="profile-avatar">📚</div>
+        <div class="profile-name" id="p-name">Reader</div>
+        <div class="profile-email" id="p-email"></div>
+        <div class="stats-row">
+          <div class="stat-item"><div class="stat-num" id="p-streak">0</div><div class="stat-label">Day Streak</div></div>
+          <div class="stat-item"><div class="stat-num" id="p-quizzes">0</div><div class="stat-label">Quizzes</div></div>
+          <div class="stat-item"><div class="stat-num" id="p-avg">0</div><div class="stat-label">Avg Score</div></div>
+        </div>
+      </div>
+      <div class="progress-section">
+        <h3>Your Progress</h3>
+        <div class="prog-bar-wrap">
+          <div class="prog-bar-label"><span>Quizzes Completed</span><span id="prog-quiz-val">0/20</span></div>
+          <div class="prog-bar"><div class="prog-fill" id="prog-quiz" style="width:0%"></div></div>
+        </div>
+        <div class="prog-bar-wrap">
+          <div class="prog-bar-label"><span>Streak Goal (30 days)</span><span id="prog-streak-val">0/30</span></div>
+          <div class="prog-bar"><div class="prog-fill green" id="prog-streak" style="width:0%"></div></div>
+        </div>
+        <div class="prog-bar-wrap">
+          <div class="prog-bar-label"><span>Perfect Scores</span><span id="prog-perfect-val">0/10</span></div>
+          <div class="prog-bar"><div class="prog-fill gold" id="prog-perfect" style="width:0%"></div></div>
+        </div>
+      </div>
+      <button class="btn-outline2" onclick="doLogout()" style="width:100%">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://oxpbltvnbjzxqwsxrpvg.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94cGJsdHZuYmp6eHF3c3hycHZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNDIxNzAsImV4cCI6MjA5NTgxODE3MH0.a_-0iKSBa8l2mr4bte6ay3g5tcgSukFA4i72YX6naQQ';
+const { createClient } = supabase;
+const sb = createClient(SB_URL, SB_KEY);
+
+// ===== ARTICLES =====
+const ARTICLES = [
+  { id:1, cat:'ECONOMY', title:'Uzbekistan Strengthens Economic Ties With Gulf Nations', body:"The government of Uzbekistan has announced a series of new investment agreements with several Gulf countries, aiming to boost the national economy and attract foreign capital. President Shavkat Mirziyoyev met with senior officials to discuss bilateral cooperation in energy, agriculture, and technology sectors. The agreements are expected to bring over two billion dollars in direct investment to the country over the next five years. Regional experts say this marks a historic turning point for Uzbekistan's economic development strategy.", source:'UzReport', url:'https://uzreport.news' },
+  { id:2, cat:'INFRASTRUCTURE', title:'Tashkent Metro Expands With Three New Stations', body:"The capital city of Uzbekistan is set to open three new metro stations as part of a major infrastructure development project. The expansion will connect several residential districts to the city center, reducing travel time significantly for thousands of citizens. Officials stated that the construction project employed over five thousand local workers and used modern technology to ensure safety and efficiency. The new stations feature digital ticketing systems and are designed to handle large volumes of daily passengers.", source:'Kun.uz', url:'https://kun.uz' },
+  { id:3, cat:'TOURISM', title:"Uzbekistan's Tourism Industry Records Historic Growth", body:"The tourism sector in Uzbekistan has experienced remarkable growth this year, with a record number of international visitors arriving to explore the country's ancient cities and cultural heritage. Samarkand, Bukhara, and Khiva remain the most popular destinations among foreign tourists. Government officials are working to develop new hotels, improve transportation links, and promote Uzbek culture on the international stage. Tourism revenue has increased by forty percent compared to last year.", source:'Daryo', url:'https://daryo.uz' },
+  { id:4, cat:'EDUCATION', title:'Uzbekistan Launches National Digital Education Platform', body:"A new digital education platform has been officially launched across Uzbekistan, providing students and teachers with access to thousands of online lessons and educational resources. The initiative is part of the government's strategy to modernize the national education system and prepare young citizens for the demands of the digital economy. Over one million students are expected to register on the platform within its first year of operation. Teachers will also receive professional development training through the system.", source:'Gazeta.uz', url:'https://gazeta.uz' },
+  { id:5, cat:'ENVIRONMENT', title:'Uzbekistan Hosts International Climate Summit in Samarkand', body:"World leaders and environmental experts gathered in the historic city of Samarkand for an international summit focused on climate change and sustainable development in Central Asia. Participants discussed strategies to address water scarcity, reduce carbon emissions, and develop renewable energy sources across the region. Uzbekistan pledged to increase its solar and wind energy capacity by fifty percent over the next decade. The summit also addressed the ongoing environmental crisis affecting the Aral Sea region.", source:'UzReport', url:'https://uzreport.news' },
+  { id:6, cat:'POLITICS', title:'Uzbekistan Strengthens Diplomatic Relations With Europe', body:"Uzbekistan has taken significant steps to strengthen its diplomatic relations with several European nations through a series of bilateral agreements. Foreign Minister met with European counterparts to discuss expanded cooperation in trade, education, and cultural exchange programs. The agreements include provisions for visa facilitation, joint research projects, and increased student exchange opportunities. Officials on both sides expressed optimism about the future of these partnerships and their potential impact on regional stability.", source:'Daryo', url:'https://daryo.uz' },
+  { id:7, cat:'CULTURE', title:'Ancient Silk Road City Samarkand Celebrates New UNESCO Status', body:"The historic city of Samarkand has received additional recognition from UNESCO for its outstanding cultural heritage and architectural monuments. The Registan Square, Shah-i-Zinda necropolis, and Gur-e-Amir mausoleum continue to attract scholars and tourists from around the world. Local authorities have launched a major restoration program to preserve these ancient structures for future generations. The recognition is expected to significantly boost international tourism and cultural exchange programs.", source:'Kun.uz', url:'https://kun.uz' },
+  { id:8, cat:'SPORT', title:'Uzbekistan Athletes Shine at International Championships', body:"Uzbekistan's national athletes delivered outstanding performances at the recent international sports championships, winning multiple gold medals across various disciplines. The boxing and wrestling teams demonstrated exceptional skill and dedication throughout the competition. Sports officials announced plans to expand training facilities and increase funding for youth development programs across the country. The government has set ambitious targets for Uzbekistan's performance at the next Olympic Games.", source:'Gazeta.uz', url:'https://gazeta.uz' },
+  { id:9, cat:'ECONOMY', title:'Uzbekistan Opens New Free Economic Zone in Navoi Region', body:"The government of Uzbekistan has officially opened a new free economic zone in the Navoi region designed to attract foreign investors and stimulate industrial development. The zone offers significant tax incentives, simplified customs procedures, and modern infrastructure to businesses operating within its borders. Over fifty international companies have already expressed interest in establishing operations in the new zone. Officials predict the development will create thousands of new jobs and contribute substantially to regional economic growth.", source:'UzReport', url:'https://uzreport.news' },
+  { id:10, cat:'INFRASTRUCTURE', title:'High-Speed Railway Project Connects Uzbek Cities', body:"Construction has begun on a major high-speed railway project that will connect several key cities across Uzbekistan, dramatically reducing travel time between major urban centers. The project represents the largest infrastructure investment in the country's recent history and is being developed in partnership with international engineering firms. Upon completion, passengers will be able to travel between Tashkent and Samarkand in under one hour. The railway system will also incorporate environmentally friendly technology to minimize its carbon footprint.", source:'Daryo', url:'https://daryo.uz' }
+];
+
+const WORDS = {
+  "president":"prezident","government":"hukumat","country":"mamlakat","economy":"iqtisodiyot",
+  "minister":"vazir","development":"rivojlanish","agreement":"kelishuv","investment":"investitsiya",
+  "region":"mintaqa","capital":"poytaxt","energy":"energiya","trade":"savdo",
+  "meeting":"uchrashuv","leader":"rahbar","official":"rasmiy","announced":"e'lon qildi",
+  "signed":"imzoladi","increased":"oshdi","relations":"munosabatlar","cooperation":"hamkorlik",
+  "billion":"milliard","million":"million","international":"xalqaro","national":"milliy",
+  "infrastructure":"infratuzilma","project":"loyiha","support":"qo'llab-quvvatlash",
+  "security":"xavfsizlik","peace":"tinchlik","diplomatic":"diplomatik","partnership":"sheriklik",
+  "reform":"islohot","citizens":"fuqarolar","population":"aholi","agriculture":"qishloq xo'jaligi",
+  "technology":"texnologiya","education":"ta'lim","summit":"sammit","strategy":"strategiya",
+  "historic":"tarixiy","culture":"madaniyat","ancient":"qadimiy","modern":"zamonaviy",
+  "digital":"raqamli","renewable":"qayta tiklanadigan","sustainable":"barqaror",
+  "regional":"mintaqaviy","bilateral":"ikki tomonlama","expansion":"kengayish",
+  "construction":"qurilish","transportation":"transport","environmental":"ekologik",
+  "scarcity":"tanqislik","significant":"muhim","economic":"iqtisodiy","political":"siyosiy",
+  "cultural":"madaniy","international":"xalqaro","development":"rivojlanish",
+  "established":"o'rnatildi","approximately":"taxminan","competition":"musobaqa",
+  "performance":"natija","outstanding":"ajoyib","exceptional":"istisno","dedicated":"bag'ishlangan"
+};
+
+const TASKS = [
+  { id:'t1', icon:'📖', title:'Read 2 articles', desc:'Complete reading 2 articles today', target:2, key:'read' },
+  { id:'t2', icon:'🧠', title:'Take 1 quiz', desc:'Complete at least one quiz', target:1, key:'quiz' },
+  { id:'t3', icon:'⭐', title:'Score 4+ on a quiz', desc:'Get 4 or 5 correct answers', target:1, key:'highscore' },
+  { id:'t4', icon:'📝', title:'Learn 5 new words', desc:'Hover over 5 highlighted words', target:5, key:'words' },
+];
+
+let currentUser = null;
+let streak = 0;
+let isLoginMode = true;
+let currentArticle = null;
+let currentVocab = [];
+let quizData = [];
+let qIndex = 0;
+let qScore = 0;
+let qAnswers = [];
+let todayProgress = { read:0, quiz:0, highscore:0, words:0 };
+let doneArticles = new Set();
+
+// ===== AUTH =====
+function switchTab(m) {
+  isLoginMode = m === 'login';
+  document.querySelectorAll('.auth-tab').forEach((t,i) => t.classList.toggle('active', (i===0&&isLoginMode)||(i===1&&!isLoginMode)));
+}
+
+async function doAuth() {
+  const email = document.getElementById('a-email').value.trim();
+  const pass = document.getElementById('a-pass').value;
+  const err = document.getElementById('a-err');
+  err.textContent = '';
+  if (!email||!pass) { err.textContent='Please fill all fields.'; return; }
+  if (pass.length < 6) { err.textContent='Password must be at least 6 characters.'; return; }
+  const btn = document.getElementById('auth-btn');
+  btn.textContent = '...'; btn.disabled = true;
+  try {
+    if (isLoginMode) {
+      const res = await sb.auth.signInWithPassword({email, password: pass});
+      if (res.error) {
+        err.textContent = res.error.message;
+      } else if (res.data && res.data.user) {
+        currentUser = res.data.user;
+        onLoggedIn();
+      } else {
+        err.textContent = 'Login failed. Please try again.';
+      }
+    } else {
+      const res = await sb.auth.signUp({email, password: pass});
+      if (res.error) {
+        err.textContent = res.error.message;
+      } else if (res.data && res.data.user && res.data.user.identities && res.data.user.identities.length === 0) {
+        // User already exists
+        err.textContent = 'This email is already registered. Please sign in.';
+        switchTab('login');
+      } else if (res.data && res.data.session) {
+        // Email confirmation disabled — logged in immediately
+        currentUser = res.data.user;
+        onLoggedIn();
+      } else {
+        // Email confirmation required
+        err.textContent = '✉️ Check your email to confirm your account, then sign in.';
+        err.style.color = 'var(--accent3)';
+        switchTab('login');
+      }
+    }
+  } catch(e) {
+    err.textContent = 'Something went wrong. Please try again.';
+  }
+  btn.textContent = 'Continue →'; btn.disabled = false;
+}
+
+async function onLoggedIn() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  const name = currentUser.email.split('@')[0];
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('p-name').textContent = name;
+  document.getElementById('p-email').textContent = currentUser.email;
+  document.getElementById('hero-name').textContent = name;
+  // Greeting by time
+  const h = new Date().getHours();
+  const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('hero-greeting').textContent = greet;
+  await getStreak();
+  await checkNotif();
+  renderArticles();
+  renderTasks();
+  updateDailyProgress();
+}
+
+async function doLogout() {
+  await sb.auth.signOut(); location.reload();
+}
+
+// ===== STREAK =====
+async function getStreak() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await sb.from('uzread_streaks').select('*').eq('user_id', currentUser.id).single();
+    if (!data) { await sb.from('uzread_streaks').insert({user_id:currentUser.id,streak:1,last_date:today}); streak=1; }
+    else {
+      const diff = Math.floor((new Date(today)-new Date(data.last_date))/86400000);
+      if (diff===0) streak=data.streak;
+      else if (diff===1) { streak=data.streak+1; await sb.from('uzread_streaks').update({streak,last_date:today}).eq('user_id',currentUser.id); }
+      else { streak=1; await sb.from('uzread_streaks').update({streak:1,last_date:today}).eq('user_id',currentUser.id); }
+    }
+  } catch(e) { streak=1; }
+  document.getElementById('streak-num').textContent = streak;
+  document.getElementById('p-streak').textContent = streak;
+}
+
+// ===== NOTIFICATIONS =====
+async function checkNotif() {
+  try {
+    const { data } = await sb.from('uzread_notifications').select('*').eq('active',true).order('created_at',{ascending:false}).limit(1);
+    if (data&&data.length>0) {
+      const bar = document.getElementById('notif-bar');
+      bar.textContent = '📢 ' + data[0].message;
+      bar.style.display = 'flex';
+    }
+  } catch(e) {}
+}
+
+// ===== NAVIGATION =====
+function showSection(s) {
+  ['home','tasks','band9'].forEach(v => {
+    document.getElementById(v+'-view').style.display = v===s ? 'block' : 'none';
+    const btn = document.getElementById('nav-'+v);
+    if (btn) btn.classList.toggle('active', v===s);
+  });
+  document.getElementById('reader-view').style.display = 'none';
+  document.getElementById('quiz-view').style.display = 'none';
+  document.getElementById('result-view').style.display = 'none';
+  document.getElementById('profile-view').style.display = 'none';
+  if (s === 'band9') renderBand9('all');
+}
+
+function showProfile() {
+  ['home','tasks','band9'].forEach(v => document.getElementById(v+'-view').style.display='none');
+  document.getElementById('reader-view').style.display='none';
+  document.getElementById('quiz-view').style.display='none';
+  document.getElementById('result-view').style.display='none';
+  document.getElementById('profile-view').style.display='block';
+  loadProfileStats();
+}
+
+// ===== ARTICLES =====
+function renderArticles() {
+  const c = document.getElementById('articles-container');
+  const grid = document.createElement('div');
+  grid.className = 'articles-grid fade-up';
+  ARTICLES.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'article-card';
+    const done = doneArticles.has(a.id);
+    const catClass = 'cat-' + a.cat.toLowerCase();
+    card.innerHTML = `
+      ${done ? '<div class="card-done">✓ DONE</div>' : ''}
+      <div class="card-cat ${catClass}">${a.cat}</div>
+      <div class="card-title">${a.title}</div>
+      <div class="card-meta">
+        <span>${a.source}</span>
+        <div class="card-words"><div class="card-dot"></div> ${countVocab(a.body)} words</div>
+      </div>
+    `;
+    card.onclick = () => openArticle(a);
+    grid.appendChild(card);
+  });
+  c.innerHTML = '';
+  c.appendChild(grid);
+  const sc = document.getElementById('section-count');
+  if (sc) sc.textContent = ARTICLES.length + ' articles';
+}
+
+function countVocab(text) {
+  const words = text.toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/);
+  return words.filter(w => WORDS[w]).length;
+}
+
+function extractVocab(text) {
+  const words = text.toLowerCase().replace(/[^a-z\s]/g,' ').split(/\s+/);
+  const found=[]; const seen=new Set();
+  for (const w of words) { if(WORDS[w]&&!seen.has(w)){seen.add(w);found.push({en:w,uz:WORDS[w]});} if(found.length>=8)break; }
+  if (found.length<5) {
+    for (const w of ['government','development','international','economy','agreement','national','citizens','cultural']) {
+      if (!seen.has(w)&&WORDS[w]) {found.push({en:w,uz:WORDS[w]});seen.add(w);}
+      if (found.length>=7) break;
+    }
+  }
+  return found;
+}
+
+function highlightWords(text, vocab) {
+  let r=text;
+  vocab.forEach(v => {
+    const re = new RegExp('\\b('+v.en+')\\b','gi');
+    r = r.replace(re, m => `<span class="word" onmouseenter="trackWord()">${m}<span class="tooltip">${v.uz}</span></span>`);
+  });
+  return r;
+}
+
+let wordsSeen = new Set();
+function trackWord() {
+  wordsSeen.add(Date.now());
+  if (wordsSeen.size >= 5 && todayProgress.words < 5) {
+    todayProgress.words = 5;
+    updateTask('words');
+  }
+}
+
+function openArticle(a) {
+  currentArticle = a;
+  currentVocab = extractVocab(a.body);
+  quizData = buildQuiz(currentVocab);
+  qIndex=0; qScore=0; qAnswers=[];
+
+  // Track read
+  if (!doneArticles.has(a.id)) {
+    todayProgress.read++;
+    updateTask('read');
+  }
+
+  const catClass = 'cat-'+a.cat.toLowerCase();
+  document.getElementById('r-cat').className = 'reader-cat ' + catClass;
+  document.getElementById('r-cat').textContent = a.cat;
+  document.getElementById('r-title').textContent = a.title;
+  document.getElementById('r-body').innerHTML = highlightWords(a.body, currentVocab);
+  document.getElementById('r-source').href = a.url;
+  document.getElementById('r-source').textContent = '↗ Read more on ' + a.source;
+
+  const vg = document.getElementById('r-vocab');
+  vg.innerHTML = currentVocab.map((v,i)=>`
+    <div class="vcard">
+      <div class="en">${v.en}</div>
+      <div class="uz">${v.uz}</div>
+    </div>`).join('');
+
+  showSection('home');
+  document.getElementById('home-view').style.display='none';
+  document.getElementById('reader-view').style.display='block';
+  document.getElementById('reader-view').classList.add('fade-up');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function backToHome() {
+  document.getElementById('reader-view').style.display='none';
+  document.getElementById('quiz-view').style.display='none';
+  document.getElementById('result-view').style.display='none';
+  showSection('home');
+  renderArticles();
+}
+
+function reviewArticle() {
+  document.getElementById('result-view').style.display='none';
+  document.getElementById('home-view').style.display='none';
+  document.getElementById('reader-view').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ===== QUIZ =====
+function buildQuiz(vocab) {
+  const shuffled=[...vocab].sort(()=>Math.random()-0.5).slice(0,5);
+  return shuffled.map(word=>{
+    const wrongs=vocab.map(v=>v.uz).filter(u=>u!==word.uz).sort(()=>Math.random()-0.5).slice(0,3);
+    return {q:`What does "<strong>${word.en}</strong>" mean?`, correct:word.uz, opts:[word.uz,...wrongs].sort(()=>Math.random()-0.5)};
+  });
+}
+
+function startQuiz() {
+  document.getElementById('reader-view').style.display='none';
+  document.getElementById('quiz-view').style.display='block';
+  document.getElementById('quiz-view').classList.add('fade-up');
+  document.getElementById('q-prog').innerHTML = quizData.map((_,i)=>`<div class="qprog${i===0?' current':''}"></div>`).join('');
+  renderQ();
+}
+
+function renderQ() {
+  const q=quizData[qIndex];
+  document.getElementById('q-counter').textContent=`Question ${qIndex+1} of ${quizData.length}`;
+  document.getElementById('q-text').innerHTML=q.q;
+  const opts=document.getElementById('q-opts');
+  opts.innerHTML='';
+  q.opts.forEach(opt=>{
+    const b=document.createElement('button');
+    b.className='qopt'; b.textContent=opt;
+    b.onclick=()=>answerQ(b,opt,q.correct);
+    opts.appendChild(b);
+  });
+}
+
+function answerQ(btn,chosen,correct) {
+  document.querySelectorAll('.qopt').forEach(b=>{
+    b.disabled=true;
+    if(b.textContent===correct) b.classList.add('correct');
+  });
+  const ok=chosen===correct;
+  if(!ok) btn.classList.add('wrong'); else qScore++;
+  qAnswers.push(ok);
+  const progs=document.querySelectorAll('.qprog');
+  qAnswers.forEach((c,i)=>{ progs[i].className='qprog '+(c?'correct':'wrong'); });
+  if(qIndex+1<quizData.length) progs[qIndex+1]?.classList.add('current');
+  setTimeout(()=>{ qIndex++; if(qIndex<quizData.length) renderQ(); else showResult(); },900);
+}
+
+async function showResult() {
+  document.getElementById('quiz-view').style.display='none';
+  document.getElementById('result-view').style.display='block';
+  document.getElementById('result-view').classList.add('fade-up');
+
+  const emojis=['😤','😐','🙂','😊','🎉'];
+  const msgs=[
+    "Don't give up! Try again tomorrow 💪",
+    "Good start! Keep reading daily 📰",
+    "Nice work! You're improving ⭐",
+    "Great job! Almost perfect 🌟",
+    "Perfect score! Incredible! 🏆"
+  ];
+  document.getElementById('r-emoji').textContent=emojis[qScore]||'🎉';
+  document.getElementById('r-score').textContent=`${qScore}/${quizData.length}`;
+  document.getElementById('r-msg').textContent=msgs[qScore]||msgs[0];
+
+  // Track tasks
+  todayProgress.quiz++;
+  updateTask('quiz');
+  if(qScore>=4){ todayProgress.highscore=1; updateTask('highscore'); }
+  if(currentArticle) doneArticles.add(currentArticle.id);
+
+  try {
+    await sb.from('uzread_results').insert({user_id:currentUser.id,score:qScore,total:quizData.length,streak,created_at:new Date().toISOString()});
+  } catch(e){}
+}
+
+// ===== TASKS =====
+function renderTasks() {
+  const c=document.getElementById('tasks-container');
+  c.innerHTML=TASKS.map(t=>{
+    const prog=todayProgress[t.key]||0;
+    const done=prog>=t.target;
+    return `<div class="task-item${done?' done':''}" id="task-${t.id}">
+      <div class="task-left">
+        <div class="task-icon">${t.icon}</div>
+        <div>
+          <div class="task-title">${t.title}</div>
+          <div class="task-desc">${t.desc} (${Math.min(prog,t.target)}/${t.target})</div>
+        </div>
+      </div>
+      <div class="task-check">${done?'✓':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateTask(key) { renderTasks(); updateDailyProgress(); }
+
+function updateDailyProgress() {
+  const tasks = [
+    { key:'read', target:2, stepId:'dstep-read' },
+    { key:'quiz', target:1, stepId:'dstep-quiz' },
+    { key:'highscore', target:1, stepId:'dstep-score' },
+    { key:'words', target:5, stepId:'dstep-words' },
+  ];
+  let done = 0;
+  tasks.forEach(t => {
+    const el = document.getElementById(t.stepId);
+    if (!el) return;
+    const complete = todayProgress[t.key] >= t.target;
+    el.classList.toggle('done', complete);
+    if (complete) done++;
+  });
+  const pct = Math.round((done / tasks.length) * 100);
+  const fill = document.getElementById('daily-bar-fill');
+  const pctEl = document.getElementById('daily-pct');
+  if (fill) fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  // Update hero streak
+  const hs = document.getElementById('hero-streak-num');
+  if (hs) hs.textContent = streak;
+  document.getElementById('streak-num').textContent = streak;
+}
+
+// ===== PROFILE =====
+async function loadProfileStats() {
+  document.getElementById('p-streak').textContent=streak;
+  try {
+    const { data } = await sb.from('uzread_results').select('*').eq('user_id',currentUser.id);
+    if(data&&data.length>0){
+      const total=data.length;
+      const avg=(data.reduce((s,r)=>s+r.score,0)/total).toFixed(1);
+      const perfect=data.filter(r=>r.score===r.total).length;
+      document.getElementById('p-quizzes').textContent=total;
+      document.getElementById('p-avg').textContent=avg;
+      document.getElementById('prog-quiz-val').textContent=`${Math.min(total,20)}/20`;
+      document.getElementById('prog-quiz').style.width=Math.min(total/20*100,100)+'%';
+      document.getElementById('prog-streak-val').textContent=`${Math.min(streak,30)}/30`;
+      document.getElementById('prog-streak').style.width=Math.min(streak/30*100,100)+'%';
+      document.getElementById('prog-perfect-val').textContent=`${Math.min(perfect,10)}/10`;
+      document.getElementById('prog-perfect').style.width=Math.min(perfect/10*100,100)+'%';
+    }
+  } catch(e){}
+}
+
+// ===== INIT =====
+sb.auth.getSession().then(({data})=>{
+  if(data.session){ currentUser=data.session.user; onLoggedIn(); }
+});
+
+// ===== BAND 9 IDEAS =====
+const BAND9 = [
+  {
+    id:1, cat:'education', catLabel:'Education',
+    topic:'Should students be allowed to use AI tools in exams?',
+    pros:['AI tools prepare students for real-world work environments where such tools are widely used.','They allow students to focus on higher-order thinking rather than memorization.','AI can level the playing field for students with learning disabilities.'],
+    cons:['Reliance on AI may weaken fundamental cognitive skills and independent thinking.','It becomes difficult to assess a student\'s true knowledge and ability.','Not all students have equal access to advanced AI tools, creating inequality.'],
+    example:'The widespread adoption of AI in education raises fundamental questions about the purpose of examinations — are they measuring knowledge retention or problem-solving ability?',
+    phrases:['critical thinking','academic integrity','cognitive development','digital literacy','equal opportunity']
+  },
+  {
+    id:2, cat:'technology', catLabel:'Technology',
+    topic:'Is social media doing more harm than good to society?',
+    pros:['Social media connects people across vast distances and fosters global communities.','It gives ordinary citizens a platform to raise awareness about social injustice.','It supports small businesses and entrepreneurs through low-cost marketing.'],
+    cons:['Excessive social media use is linked to anxiety, depression, and loneliness.','The spread of misinformation can manipulate public opinion on a massive scale.','Algorithms create echo chambers that deepen political and social divisions.'],
+    example:'While social media has undeniably democratised information sharing, its algorithmic design prioritises engagement over truth, with potentially devastating consequences for public discourse.',
+    phrases:['mental well-being','echo chambers','misinformation','digital divide','social cohesion']
+  },
+  {
+    id:3, cat:'environment', catLabel:'Environment',
+    topic:'Should governments prioritise economic growth over environmental protection?',
+    pros:['Economic growth generates the resources needed to invest in green technologies.','Developing nations need growth to lift populations out of poverty first.','A strong economy can fund environmental research and innovation.'],
+    cons:['Short-term economic gains often result in irreversible environmental damage.','Climate change poses an existential threat that outweighs any economic benefit.','Sustainable development models prove that growth and conservation are not mutually exclusive.'],
+    example:'The false dichotomy between economic prosperity and environmental sustainability has been repeatedly challenged by economists who argue that a green economy is not only viable but inevitable.',
+    phrases:['sustainable development','carbon footprint','renewable energy','biodiversity','climate policy']
+  },
+  {
+    id:4, cat:'society', catLabel:'Society',
+    topic:'Is it the government\'s responsibility to reduce inequality?',
+    pros:['Governments have the unique power and resources to implement systemic change.','High inequality undermines social cohesion and increases crime rates.','Progressive taxation and welfare systems have historically reduced poverty effectively.'],
+    cons:['Excessive government intervention can stifle individual initiative and entrepreneurship.','Market forces, if left to operate freely, can naturally distribute wealth over time.','Inequality may incentivise people to work harder and innovate.'],
+    example:'The persistent gap between the wealthy and the poor is not merely a moral issue but an economic one — extreme inequality has been shown to reduce overall productivity and hinder long-term growth.',
+    phrases:['social mobility','wealth gap','progressive taxation','welfare state','meritocracy']
+  },
+  {
+    id:5, cat:'health', catLabel:'Health',
+    topic:'Should junk food advertising be banned for children?',
+    pros:['Children lack the cognitive ability to critically evaluate persuasive advertising.','Rising childhood obesity rates represent a serious public health crisis.','Several countries have already implemented such bans with measurable positive outcomes.'],
+    cons:['Parental responsibility, not government regulation, should guide children\'s diets.','A ban may be ineffective if children are exposed to advertising through online platforms.','It sets a precedent for government overreach into personal and commercial freedoms.'],
+    example:'Given that the human brain does not fully develop until the mid-twenties, exposing children to sophisticated marketing techniques for nutritionally poor food products raises serious ethical questions about corporate responsibility.',
+    phrases:['public health','childhood obesity','media literacy','consumer protection','regulatory framework']
+  },
+  {
+    id:6, cat:'economy', catLabel:'Economy',
+    topic:'Should university education be free for all students?',
+    pros:['Free education removes financial barriers and promotes social equality.','A more educated workforce drives economic productivity and innovation.','Student debt creates long-term financial stress that hampers economic participation.'],
+    cons:['Free universities place a significant financial burden on taxpayers.','Unlimited access may reduce the perceived value and quality of higher education.','Vocational training may be a more practical and cost-effective investment for many students.'],
+    example:'The commodification of higher education has transformed universities from institutions of learning into marketplaces, where access to knowledge is determined not by intellectual merit but by financial means.',
+    phrases:['social equity','student debt','academic excellence','vocational training','public investment']
+  },
+  {
+    id:7, cat:'technology', catLabel:'Technology',
+    topic:'Will artificial intelligence cause mass unemployment?',
+    pros:['AI is already displacing workers in manufacturing, retail, and administrative roles.','The pace of technological change may outstrip society\'s ability to retrain workers.','Historically, automation has eliminated entire job categories with little replacement.'],
+    cons:['Every industrial revolution has ultimately created more jobs than it destroyed.','AI will generate entirely new industries and roles that do not yet exist.','Human skills such as empathy, creativity, and leadership cannot be replicated by machines.'],
+    example:'The question is not whether artificial intelligence will transform the labour market — it undeniably will — but whether governments and institutions are prepared to manage that transformation equitably.',
+    phrases:['automation','labour market','reskilling','human capital','technological disruption']
+  },
+  {
+    id:8, cat:'society', catLabel:'Society',
+    topic:'Should the voting age be lowered to 16?',
+    pros:['At 16, young people pay taxes and are subject to adult laws — taxation without representation is unjust.','Early civic engagement encourages lifelong political participation.','Young people are directly affected by long-term policy decisions on climate, education, and debt.'],
+    cons:['The teenage brain is still developing, particularly regions governing decision-making and impulse control.','At 16, most young people lack sufficient life experience to make fully informed political choices.','Lowering the voting age could make young voters vulnerable to manipulation by populist movements.'],
+    example:'Denying politically aware and civically engaged teenagers the right to vote while simultaneously holding them legally accountable as adults represents a fundamental inconsistency in modern democratic systems.',
+    phrases:['civic engagement','democratic participation','political awareness','youth representation','constitutional rights']
+  },
+  {
+    id:9, cat:'environment', catLabel:'Environment',
+    topic:'Should individuals or corporations bear greater responsibility for climate change?',
+    pros:['Individual lifestyle choices — diet, travel, consumption — collectively drive enormous emissions.','Personal responsibility encourages a culture of sustainability from the grassroots level.','Consumer demand shapes what corporations produce and how they produce it.'],
+    cons:['Just 100 corporations are responsible for over 70% of global greenhouse gas emissions.','Placing blame on individuals distracts from the systemic changes required at a policy level.','Many people lack the financial means to make environmentally responsible choices.'],
+    example:'The narrative that climate change is primarily a matter of individual choice is one that has been carefully cultivated by the fossil fuel industry to deflect attention from the urgent need for corporate and governmental accountability.',
+    phrases:['carbon emissions','corporate accountability','systemic change','green consumerism','fossil fuels']
+  },
+  {
+    id:10, cat:'health', catLabel:'Health',
+    topic:'Should mental health be treated with the same priority as physical health?',
+    pros:['Mental illness affects one in four people globally and is a leading cause of disability.','Untreated mental health conditions cost economies billions in lost productivity annually.','The mind-body connection means that mental and physical health are fundamentally inseparable.'],
+    cons:['Limited healthcare budgets force difficult prioritisation decisions between competing needs.','Mental health conditions are often harder to diagnose and treat consistently than physical ones.','Cultural stigma in many societies reduces the demand for and effectiveness of mental health services.'],
+    example:'The artificial boundary between mental and physical health is a relic of outdated medical thinking — modern neuroscience makes abundantly clear that psychological well-being is as biological as a broken bone.',
+    phrases:['mental well-being','healthcare funding','stigma reduction','psychological resilience','holistic health']
+  }
+];
+
+let currentBand9Filter = 'all';
+
+function renderBand9(filter) {
+  currentBand9Filter = filter;
+  document.querySelectorAll('.b9-filter').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === filter || (filter==='all' && b.textContent==='All')));
+  const items = filter === 'all' ? BAND9 : BAND9.filter(i => i.cat === filter);
+  const catColors = {education:'cat-education',technology:'cat-economy',environment:'cat-environment',society:'cat-infrastructure',economy:'cat-economy',health:'cat-tourism'};
+  document.getElementById('b9-container').innerHTML = items.map(item => `
+    <div class="b9-card fade-up">
+      <div class="b9-card-top">
+        <div class="b9-topic">${item.topic}</div>
+        <div class="b9-cat-badge ${catColors[item.cat]||'cat-education'}">${item.catLabel}</div>
+      </div>
+      <div class="b9-divider">✅ Supporting Ideas</div>
+      <div class="b9-ideas">
+        ${item.pros.map(p=>`<div class="b9-idea b9-pro"><div class="b9-bullet"></div><span>${p}</span></div>`).join('')}
+      </div>
+      <div class="b9-divider">❌ Opposing Ideas</div>
+      <div class="b9-ideas">
+        ${item.cons.map(c=>`<div class="b9-idea b9-con"><div class="b9-bullet"></div><span>${c}</span></div>`).join('')}
+      </div>
+      <div class="b9-example">"${item.example}"</div>
+      <div class="b9-phrases">${item.phrases.map(p=>`<span class="b9-phrase">${p}</span>`).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function filterBand9(cat) {
+  renderBand9(cat);
+}
+
+</script>
+</body>
+</html>
